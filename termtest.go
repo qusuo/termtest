@@ -24,7 +24,6 @@ type TermTest struct {
 	outputProducer *outputProducer
 	listenError    chan error
 	opts           *Opts
-	exited         *cmdExit
 }
 
 type ErrorHandler func(*TermTest, error) error
@@ -238,10 +237,6 @@ func (tt *TermTest) start() (rerr error) {
 	}()
 	wg.Wait()
 
-	go func() {
-		tt.exited = <-waitForCmdExit(tt.cmd)
-	}()
-
 	return nil
 }
 
@@ -322,28 +317,6 @@ func (tt *TermTest) SendLine(value string) (rerr error) {
 func (tt *TermTest) SendCtrlC() {
 	tt.opts.Logger.Printf("SendCtrlC\n")
 	tt.Send(string([]byte{0x03})) // 0x03 is ASCII character for ^C
-}
-
-// Exited returns a channel that sends the given termtest's command cmdExit info when available.
-// This can be used within a select{} statement.
-// If waitExtra is given, waits a little bit before sending cmdExit info. This allows any fellow
-// switch cases with output consumers to handle unprocessed stdout. If there are no such cases
-// (e.g. ExpectExit(), where we want to catch an exit ASAP), waitExtra should be false.
-func (tt *TermTest) Exited(waitExtra bool) chan *cmdExit {
-	return waitChan(func() *cmdExit {
-		ticker := time.NewTicker(processExitPollInterval)
-		for {
-			select {
-			case <-ticker.C:
-				if tt.exited != nil {
-					if waitExtra { // allow sibling output consumer cases to handle their output
-						time.Sleep(processExitExtraWait)
-					}
-					return tt.exited
-				}
-			}
-		}
-	})
 }
 
 func (tt *TermTest) errorHandler(rerr *error) {

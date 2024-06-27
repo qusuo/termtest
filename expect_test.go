@@ -216,6 +216,27 @@ func Test_Expect_Timeout(t *testing.T) {
 	tt.ExpectExitCode(0, OptExpectTimeout(time.Hour))
 }
 
+// Test_ExpectMet_ProcessExit tests a potential race condition; where the process exiting event might hit before all output
+// has been fully consumed.
+func Test_ExpectMet_ProcessExit(t *testing.T) {
+	tt := newTermTest(t, exec.Command("bash", "-c", "echo HELLO && exit 1"), false)
+	tt.Expect("HELLO")
+	tt.ExpectExitCode(1)
+}
+
+// Test_ExpectFail_ProcessExit tests that we don't wait for the timeout if an expect is still waiting for output after
+// the process has exited.
+func Test_ExpectFail_ProcessExit(t *testing.T) {
+	tt := newTermTest(t, exec.Command("bash", "-c", "echo HELLO && exit 1"), true)
+	start := time.Now()
+	err := tt.Expect("GOODBYE", OptExpectTimeout(5*time.Second), OptExpectSilenceErrorHandler())
+	require.ErrorIs(t, err, ptyEOF)
+	if time.Now().Sub(start) >= 5*time.Second {
+		t.Errorf("Should not have waited for timeout as process has exited")
+	}
+	tt.ExpectExitCode(1)
+}
+
 func Test_ExpectMatchTwiceSameBuffer(t *testing.T) {
 	tt := newTermTest(t, exec.Command("bash"), false)
 
