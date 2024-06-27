@@ -54,7 +54,7 @@ func (o *outputProducer) listen(r io.Reader, w io.Writer, appendBuffer func([]by
 	for {
 		o.opts.Logger.Println("listen: loop")
 		if err := o.processNextRead(br, w, appendBuffer, size); err != nil {
-			if errors.Is(err, ptyEOF) {
+			if errors.Is(err, PtyEOF) {
 				return nil
 			} else {
 				return fmt.Errorf("could not poll reader: %w", err)
@@ -63,7 +63,7 @@ func (o *outputProducer) listen(r io.Reader, w io.Writer, appendBuffer func([]by
 	}
 }
 
-var ptyEOF = errors.New("pty closed")
+var PtyEOF = errors.New("pty closed")
 
 func (o *outputProducer) processNextRead(r io.Reader, w io.Writer, appendBuffer func([]byte, bool) error, size int) error {
 	o.opts.Logger.Printf("processNextRead started with size: %d\n", size)
@@ -96,8 +96,8 @@ func (o *outputProducer) processNextRead(r io.Reader, w io.Writer, appendBuffer 
 
 	if errRead != nil {
 		if isEOF {
-			o.closeConsumers(ptyEOF)
-			return errors.Join(errRead, ptyEOF)
+			o.closeConsumers(PtyEOF)
+			return errors.Join(errRead, PtyEOF)
 		}
 		return fmt.Errorf("could not read pty output: %w", errRead)
 	}
