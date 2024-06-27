@@ -2,10 +2,10 @@ package pty
 
 // Winsize describes the terminal size.
 type Winsize struct {
-	Rows uint16 // ws_row: Number of rows (in cells).
-	Cols uint16 // ws_col: Number of columns (in cells).
-	X    uint16 // ws_xpixel: Width in pixels.
-	Y    uint16 // ws_ypixel: Height in pixels.
+	Rows uint16 // ws_row: Number of rows (in cells)
+	Cols uint16 // ws_col: Number of columns (in cells)
+	X    uint16 // ws_xpixel: Width in pixels
+	Y    uint16 // ws_ypixel: Height in pixels
 }
 
 // InheritSize applies the terminal size of pty to tty. This should be run
@@ -17,7 +17,10 @@ func InheritSize(pty Pty, tty Tty) error {
 		return err
 	}
 
-  return Setsize(tty, size)
+	if err := Setsize(tty, size); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Getsize returns the number of rows (lines) and cols (positions

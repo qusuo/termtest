@@ -34,38 +34,38 @@ func StartWithSize(c *exec.Cmd, sz *Winsize) (Pty, error) {
 // This should generally not be needed. Used in some edge cases where it is needed to create a pty
 // without a controlling terminal.
 func StartWithAttrs(c *exec.Cmd, sz *Winsize, attrs *syscall.SysProcAttr) (Pty, error) {
-	pty, tty, err := open()
+	pty, _, err := open()
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		// Unlike unix command exec, do not close tty unless error happened.
+		// unlike unix command exec, do not close tty unless error happened
 		if err != nil {
-			_ = pty.Close() // Best effort.
+			_ = pty.Close()
 		}
 	}()
 
 	if sz != nil {
-		if err := Setsize(pty, sz); err != nil {
+		if err = Setsize(pty, sz); err != nil {
 			return nil, err
 		}
 	}
 
-	// Unlike unix command exec, do not set stdin/stdout/stderr.
+	// unlike unix command exec, do not set stdin/stdout/stderr
 
 	c.SysProcAttr = attrs
 
-	// Do not use os/exec.Start since we need to append console handler to startup info.
+	// do not use os/exec.Start since we need to append console handler to startup info
 
 	w := windowExecCmd{
 		cmd:        c,
 		waitCalled: false,
 		conPty:     pty.(*WindowsPty),
-		conTty:     tty.(*WindowsTty),
 	}
 
-	if err := w.Start(); err != nil {
+	err = w.Start()
+	if err != nil {
 		return nil, err
 	}
 
@@ -83,7 +83,7 @@ func (c *windowExecCmd) Start() error {
 		return errors.New("exec: already started")
 	}
 
-	argv0 := c.cmd.Path
+	var argv0 = c.cmd.Path
 	var argv0p *uint16
 	var argvp *uint16
 	var dirp *uint16
@@ -131,7 +131,7 @@ func (c *windowExecCmd) Start() error {
 
 	// Windows CreateProcess takes the command line as a single string:
 	// use attr.CmdLine if set, else build the command line by escaping
-	// and joining each argument with spaces.
+	// and joining each argument with spaces
 	if sys.CmdLine != "" {
 		cmdline = sys.CmdLine
 	} else {
@@ -226,12 +226,5 @@ func (c *windowExecCmd) Start() error {
 		return err
 	}
 
-	go c.waitProcess(c.cmd.Process)
-
 	return nil
-}
-
-func (c *windowExecCmd) waitProcess(process *os.Process) {
-	_, _ = process.Wait()
-	_ = c.close()
 }
