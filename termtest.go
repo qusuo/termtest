@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ActiveState/pty"
+	"github.com/creack/pty/v2"
 	"github.com/hinshun/vt10x"
 )
 

@@ -1,14 +1,18 @@
 module github.com/ActiveState/termtest
 
-go 1.18
+go 1.21.5
+
+toolchain go1.21.11
+
+replace github.com/creack/pty/v2 => github.com/photostorm/pty/v2 v2.0.0-20240414153732-871f917c63a2
 
 require (
-	github.com/ActiveState/pty v0.0.0-20230628221854-6fb90eb08a14
+	github.com/creack/pty/v2 v2.0.0-00010101000000-000000000000
 	github.com/hinshun/vt10x v0.0.0-20220301184237-5011da428d02
 	github.com/shirou/gopsutil/v3 v3.23.8
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/goleak v1.2.0
-	golang.org/x/sys v0.11.0
+	golang.org/x/sys v0.13.0
 )
 
 require (
