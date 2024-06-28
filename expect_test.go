@@ -85,7 +85,7 @@ func Test_ExpectCustom(t *testing.T) {
 				[]SetExpectOpt{OptExpectTimeout(time.Second)},
 			},
 			"",
-			TimeoutError,
+			PtyEOF,
 		},
 		{
 			"Custom error",
@@ -167,7 +167,7 @@ func Test_ExpectCustom_Cmd(t *testing.T) {
 				},
 				[]SetExpectOpt{OptExpectTimeout(time.Second)},
 			},
-			TimeoutError,
+			PtyEOF,
 		},
 		{
 			"Custom error",
@@ -194,7 +194,7 @@ func Test_ExpectCustom_Cmd(t *testing.T) {
 }
 
 func Test_Expect_Timeout(t *testing.T) {
-	tt := newTermTest(t, exec.Command("bash", "-c", "echo HELLO"), false)
+	tt := newTermTest(t, exec.Command("bash", "-c", "echo HELLO && sleep 1"), false)
 	durations := []time.Duration{
 		100 * time.Millisecond,
 		200 * time.Millisecond,
