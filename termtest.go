@@ -23,6 +23,7 @@ type TermTest struct {
 	ptmx           pty.Pty
 	outputProducer *outputProducer
 	listenError    chan error
+	waitError      chan error
 	opts           *Opts
 }
 
@@ -78,6 +79,7 @@ func New(cmd *exec.Cmd, opts ...SetOpt) (*TermTest, error) {
 		cmd:            cmd,
 		outputProducer: newOutputProducer(optv),
 		listenError:    make(chan error, 1),
+		waitError:      make(chan error, 1),
 		opts:           optv,
 	}
 
@@ -227,6 +229,7 @@ func (tt *TermTest) start() (rerr error) {
 	tt.term = vt10x.New(vt10x.WithWriter(ptmx), vt10x.WithSize(tt.opts.Cols, tt.opts.Rows))
 
 	// Start listening for output
+	// We use a waitgroup here to ensure the listener is active before consumers are attached.
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
@@ -235,6 +238,16 @@ func (tt *TermTest) start() (rerr error) {
 		err := tt.outputProducer.Listen(tt.ptmx, tt.term)
 		tt.listenError <- err
 	}()
+
+	go func() {
+		// We start waiting right away, because on Windows the PTY isn't closed until the process exits, which in turn
+		// can't happen unless we've told the pty we're ready for it to close.
+		// This of course isn't ideal, but until the pty library fixes the cross-platform inconsistencies we have to
+		// work around these limitations.
+		defer tt.opts.Logger.Printf("waitIndefinitely finished")
+		tt.waitError <- tt.waitIndefinitely()
+	}()
+
 	wg.Wait()
 
 	return nil
@@ -247,13 +260,8 @@ func (tt *TermTest) Wait(timeout time.Duration) (rerr error) {
 	tt.opts.Logger.Println("wait called")
 	defer tt.opts.Logger.Println("wait closed")
 
-	errc := make(chan error, 1)
-	go func() {
-		errc <- tt.WaitIndefinitely()
-	}()
-
 	select {
-	case err := <-errc:
+	case err := <-tt.waitError:
 		// WaitIndefinitely already invokes the expect error handler
 		return err
 	case <-time.After(timeout):
